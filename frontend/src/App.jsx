@@ -1,20 +1,25 @@
 import { useState } from 'react'
+import Home from './components/Home'
 import Login from './components/Login'
 import Register from './components/Register'
-import Weather from './components/Weather'
+import Dashboard from './components/Dashboard'
 
 function App() {
-  const [currentView, setCurrentView] = useState('login')
+  const [currentView, setCurrentView] = useState('home')
   const [user, setUser] = useState(null)
+
+  const handleShowLogin = () => {
+    setCurrentView('login')
+  }
 
   const handleLogin = (userData) => {
     setUser(userData)
-    setCurrentView('weather')
+    setCurrentView('dashboard')
   }
 
   const handleLogout = () => {
     setUser(null)
-    setCurrentView('login')
+    setCurrentView('home')
   }
 
   const handleRegisterSuccess = () => {
@@ -23,10 +28,15 @@ function App() {
 
   return (
     <div className="app">
+      {currentView === 'home' && (
+        <Home onShowLogin={handleShowLogin} />
+      )}
+      
       {currentView === 'login' && (
         <Login 
           onLogin={handleLogin} 
           onSwitchToRegister={() => setCurrentView('register')}
+          onBack={() => setCurrentView('home')}
         />
       )}
       
@@ -37,8 +47,8 @@ function App() {
         />
       )}
       
-      {currentView === 'weather' && user && (
-        <Weather 
+      {currentView === 'dashboard' && user && (
+        <Dashboard 
           user={user}
           onLogout={handleLogout}
         />

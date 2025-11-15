@@ -5,6 +5,7 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [homeCity, setHomeCity] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -22,15 +23,21 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
       return
     }
 
+    if (!homeCity.trim()) {
+      setError('Debe ingresar su ciudad de origen')
+      return
+    }
+
     setLoading(true)
 
     try {
-      await axios.post('http://localhost:3000/api/auth/register', {
+      const response = await axios.post('http://localhost:3000/api/auth/register', {
         username,
-        password
+        password,
+        homeCity
       })
 
-      alert('Usuario registrado exitosamente. Ahora puedes iniciar sesión.')
+      alert(`Usuario registrado exitosamente.\nCiudad de origen: ${response.data.homeCity}\nAhora puedes iniciar sesión.`)
       onRegisterSuccess()
     } catch (err) {
       setError(err.response?.data?.error || 'Error al registrar usuario')
@@ -79,6 +86,20 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
               required
               placeholder="Confirme su contraseña"
             />
+          </div>
+
+          <div className="form-group">
+            <label>Ciudad de Origen</label>
+            <input
+              type="text"
+              value={homeCity}
+              onChange={(e) => setHomeCity(e.target.value)}
+              required
+              placeholder="Ej: San José, Costa Rica"
+            />
+            <small className="form-help">
+              Esta será la ciudad que verás al iniciar sesión
+            </small>
           </div>
 
           {error && <div className="error-message">{error}</div>}

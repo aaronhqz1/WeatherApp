@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
 
 const routes = require('./routes');
 
@@ -16,7 +15,11 @@ app.use('/api', routes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
-  res.json({ message: 'API de Clima funcionando correctamente' });
+  res.json({ 
+    message: 'API de Clima funcionando correctamente',
+    version: '1.0.0',
+    api: 'Open-Meteo (gratuita)'
+  });
 });
 
 // Manejo de errores
@@ -28,4 +31,5 @@ app.use((err, req, res, next) => {
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log('Base de datos SQLite inicializada');
 });

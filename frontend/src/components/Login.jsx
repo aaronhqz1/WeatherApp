@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios'
 
-function Login({ onLogin, onSwitchToRegister }) {
+function Login({ onLogin, onSwitchToRegister, onBack }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -20,7 +20,10 @@ function Login({ onLogin, onSwitchToRegister }) {
 
       onLogin({
         userId: response.data.userId,
-        username: response.data.username
+        username: response.data.username,
+        homeCity: response.data.homeCity,
+        homeLatitude: response.data.homeLatitude,
+        homeLongitude: response.data.homeLongitude
       })
     } catch (err) {
       setError(err.response?.data?.error || 'Error al iniciar sesión')
@@ -32,6 +35,12 @@ function Login({ onLogin, onSwitchToRegister }) {
   return (
     <div className="auth-container">
       <div className="auth-card">
+        <div className="auth-header-with-back">
+          <button onClick={onBack} className="back-button">
+            ← Volver
+          </button>
+        </div>
+        
         <h1>Aplicación de Clima</h1>
         <h2>Iniciar Sesión</h2>
         
