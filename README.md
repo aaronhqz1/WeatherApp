@@ -21,7 +21,14 @@
 - Express 4.18
 - SQLite3 para base de datos
 - Cors para comunicación cross-origin
-- Bcrypt para encriptación de contraseñas
+- Bcrypt para encriptación de contraseñas (factor 12)
+- OpenAI API para recomendaciones inteligentes
+- Dotenv para variables de entorno
+
+**API Testing (Opcional):**
+- FastAPI (Python)
+- Uvicorn
+- HTTPX para peticiones asíncronas
 
 **API Externa:**
 - Open-Meteo (https://open-meteo.com/) - API gratuita de clima sin necesidad de API Key
@@ -109,8 +116,9 @@ La aplicación frontend estará disponible en: `http://localhost:5173`
 ### Pantalla Inicial (Home)
 
 1. Al abrir la aplicación, verá el clima de una ciudad aleatoria del mundo
-2. El clima se actualiza cada vez que recarga la página
-3. En la esquina superior derecha hay un botón "Iniciar Sesión"
+2. Puede buscar cualquier ciudad usando el campo de búsqueda
+3. El clima se actualiza cada vez que busca o hace clic en "Ver Otra Ciudad Aleatoria"
+4. En la esquina superior derecha hay un botón "Iniciar Sesión"
 
 ### Registro de Usuario
 
@@ -119,9 +127,9 @@ La aplicación frontend estará disponible en: `http://localhost:5173`
 3. Complete el formulario con:
    - Nombre de usuario (mínimo 3 caracteres)
    - Contraseña (mínimo 6 caracteres)
-   - Ciudad de origen (ej: "San José, Costa Rica")
+   - Ciudad de origen (OPCIONAL - puede omitirla y configurarla después)
 4. Haga clic en "Registrarse"
-5. El sistema guardará su ciudad como ubicación de inicio
+5. El sistema guardará su ciudad si la proporcionó
 
 ### Inicio de Sesión
 
@@ -152,10 +160,8 @@ Al iniciar sesión verá:
 
 1. Después de realizar una búsqueda exitosa
 2. Haga clic en el botón "Guardar en Historial"
-3. La consulta se almacenará automáticamente con:
-   - Ciudad consultada
-   - Fecha y hora de la consulta
-   - Datos climáticos completos
+3. La consulta se almacenará automáticamente
+4. **Nota**: No se puede guardar la misma ciudad dos veces en 24 horas
 
 ### Ver Últimas Búsquedas
 
@@ -164,10 +170,11 @@ Al iniciar sesión verá:
 
 ### Cambiar Ciudad de Origen
 
-1. Haga clic en "Configuración" o en el ícono de perfil
+1. Una vez autenticado, haga clic en "Configuración" (⚙️) en la esquina superior derecha
 2. Ingrese una nueva ciudad de origen
-3. Haga clic en "Actualizar"
+3. Haga clic en "Actualizar Ciudad"
 4. La próxima vez que inicie sesión, verá el clima de la nueva ciudad
+5. Si omitió la ciudad al registrarse, puede configurarla aquí
 
 ### Cerrar Sesión
 
@@ -209,6 +216,11 @@ proyecto-clima/
 │   ├── package.json
 │   ├── requirements.txt
 │   └── vite.config.js
+├── api_testing/ (OPCIONAL)
+│   ├── main.py
+│   ├── requirements.txt
+│   └── README.md
+├── .gitignore
 └── README.md
 ```
 
@@ -376,6 +388,14 @@ rmdir /s /q node_modules
 rmdir /s /q dist
 ```
 
+**API Testing (si se incluye):**
+
+```bash
+cd api_testing
+rmdir /s /q venv
+del /s /q __pycache__
+```
+
 Luego comprimir toda la carpeta del proyecto en formato ZIP.
 
 ### Reinstalar Dependencias (Después de Extraer)
@@ -415,10 +435,15 @@ El receptor del proyecto deberá:
 - Sin necesidad de API Key (completamente gratuito)
 - Geocodificación automática de ciudades
 - Pronóstico por horas para el día actual
-- Almacenamiento de ubicación de origen del usuario
-- Historial persistente de búsquedas
+- Almacenamiento de ubicación de origen del usuario (opcional)
+- Ciudad de origen puede ser omitida al registrarse
+- Historial persistente de búsquedas (sin duplicados en 24h)
 - Interfaz responsive para dispositivos móviles
 - Base de datos SQLite embebida (sin configuración adicional)
+- Búsqueda de ciudades desde la pantalla inicial
+- Configuración de ciudad de origen desde el panel de usuario
+- FastAPI incluido para pruebas y desarrollo de APIs
+- .gitignore completo para control de versiones
 
 ## Notas Adicionales
 

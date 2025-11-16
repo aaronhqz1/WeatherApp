@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import WeatherCard from './WeatherCard'
+import ClothingRecommendation from './ClothingRecommendation'
 
 function Dashboard({ user, onLogout }) {
   const [homeWeather, setHomeWeather] = useState(null)
@@ -11,6 +12,9 @@ function Dashboard({ user, onLogout }) {
   const [searchLoading, setSearchLoading] = useState(false)
   const [error, setError] = useState('')
   const [saveMessage, setSaveMessage] = useState('')
+  const [showSettings, setShowSettings] = useState(false)
+  const [newHomeCity, setNewHomeCity] = useState('')
+  const [settingsLoading, setSettingsLoading] = useState(false)
 
   useEffect(() => {
     loadDashboardData()
@@ -18,16 +22,18 @@ function Dashboard({ user, onLogout }) {
 
   const loadDashboardData = async () => {
     try {
-      // Cargar clima de la ciudad de origen
-      const weatherResponse = await axios.get(
-        `http://localhost:3000/api/weather/coordinates?lat=${user.homeLatitude}&lon=${user.homeLongitude}`
-      )
-      setHomeWeather({
-        ...weatherResponse.data,
-        city: user.homeCity,
-        latitude: user.homeLatitude,
-        longitude: user.homeLongitude
-      })
+      // Solo cargar clima de origen si tiene ciudad configurada
+      if (user.homeLatitude && user.homeLongitude) {
+        const weatherResponse = await axios.get(
+          `http://localhost:3000/api/weather/coordinates?lat=${user.homeLatitude}&lon=${user.homeLongitude}`
+        )
+        setHomeWeather({
+          ...weatherResponse.data,
+          city: user.homeCity,
+          latitude: user.homeLatitude,
+          longitude: user.homeLongitude
+        })
+      }
 
       // Cargar últimas 3 búsquedas
       const historyResponse = await axios.get(
@@ -87,7 +93,42 @@ function Dashboard({ user, onLogout }) {
 
       setTimeout(() => setSaveMessage(''), 3000)
     } catch (err) {
-      setError('Error al guardar en el historial')
+      const errorMsg = err.response?.data?.error || 'Error al guardar en el historial'
+      setError(errorMsg)
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
+  const handleUpdateHomeCity = async (e) => {
+    e.preventDefault()
+    if (!newHomeCity.trim()) return
+
+    setSettingsLoading(true)
+    setError('')
+
+    try {
+      const response = await axios.put(
+        `http://localhost:3000/api/user/${user.userId}/home`,
+        { homeCity: newHomeCity }
+      )
+
+      // Actualizar datos del usuario
+      user.homeCity = response.data.homeCity
+      user.homeLatitude = response.data.homeLatitude
+      user.homeLongitude = response.data.homeLongitude
+
+      setSaveMessage('Ciudad de origen actualizada')
+      setShowSettings(false)
+      setNewHomeCity('')
+      
+      // Recargar datos
+      await loadDashboardData()
+
+      setTimeout(() => setSaveMessage(''), 3000)
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error al actualizar ciudad')
+    } finally {
+      setSettingsLoading(false)
     }
   }
 
@@ -106,19 +147,57 @@ function Dashboard({ user, onLogout }) {
           <h1>Panel de Clima</h1>
           <span className="username-display">Usuario: {user.username}</span>
         </div>
-        <button onClick={onLogout} className="logout-button">
-          Cerrar Sesión
-        </button>
+        <div className="header-actions">
+          <button onClick={() => setShowSettings(!showSettings)} className="settings-button">
+            ⚙️ Configuración
+          </button>
+          <button onClick={onLogout} className="logout-button">
+            Cerrar Sesión
+          </button>
+        </div>
       </header>
+
+      {showSettings && (
+        <section className="settings-section">
+          <h2>Configurar Ciudad de Origen</h2>
+          <form onSubmit={handleUpdateHomeCity} className="settings-form">
+            <input
+              type="text"
+              value={newHomeCity}
+              onChange={(e) => setNewHomeCity(e.target.value)}
+              placeholder={user.homeCity || "Ingresa tu ciudad (ej: San José, Costa Rica)"}
+              className="search-input"
+            />
+            <div className="settings-buttons">
+              <button type="submit" disabled={settingsLoading}>
+                {settingsLoading ? 'Guardando...' : 'Actualizar Ciudad'}
+              </button>
+              <button type="button" onClick={() => setShowSettings(false)} className="cancel-button">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <div className="dashboard-content">
         {/* Clima de ciudad de origen */}
-        <section className="home-weather-section">
-          <h2>Tu Ciudad: {user.homeCity}</h2>
-          {homeWeather && (
-            <WeatherCard weatherData={homeWeather} showSaveButton={false} />
-          )}
-        </section>
+        {user.homeCity ? (
+          <section className="home-weather-section">
+            <h2>Tu Ciudad: {user.homeCity}</h2>
+            {homeWeather && (
+              <WeatherCard weatherData={homeWeather} showSaveButton={false} />
+            )}
+          </section>
+        ) : (
+          <section className="home-weather-section">
+            <h2>Ciudad de Origen No Configurada</h2>
+            <p className="no-data">
+              Configura tu ciudad de origen para ver el clima al iniciar sesión.
+              Haz clic en "Configuración" arriba.
+            </p>
+          </section>
+        )}
 
         {/* Búsqueda de clima */}
         <section className="search-section">

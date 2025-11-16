@@ -7,21 +7,44 @@ const saveHistory = (req, res) => {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
 
-  db.run(
-    `INSERT INTO weather_history 
-     (user_id, city, latitude, longitude, temperature, humidity, wind_speed, weather_code) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [userId, city, latitude, longitude, temperature, humidity, wind_speed, weather_code],
-    function (err) {
+  // Verificar si ya existe una búsqueda reciente de la misma ciudad (últimas 24 horas)
+  db.get(
+    `SELECT id FROM weather_history 
+     WHERE user_id = ? AND city = ? 
+     AND datetime(query_time) > datetime('now', '-24 hours')
+     ORDER BY query_time DESC 
+     LIMIT 1`,
+    [userId, city],
+    (err, row) => {
       if (err) {
-        console.error('Error al guardar en historial:', err);
-        return res.status(500).json({ error: 'Error al guardar en historial' });
+        console.error('Error al verificar historial:', err);
+        return res.status(500).json({ error: 'Error al verificar historial' });
       }
 
-      res.status(201).json({
-        message: 'Consulta guardada en historial',
-        id: this.lastID
-      });
+      if (row) {
+        return res.status(409).json({ 
+          error: 'Ya guardaste esta ciudad recientemente. Intenta con otra ciudad.' 
+        });
+      }
+
+      // Si no existe, guardar la nueva búsqueda
+      db.run(
+        `INSERT INTO weather_history 
+         (user_id, city, latitude, longitude, temperature, humidity, wind_speed, weather_code) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, city, latitude, longitude, temperature, humidity, wind_speed, weather_code],
+        function (err) {
+          if (err) {
+            console.error('Error al guardar en historial:', err);
+            return res.status(500).json({ error: 'Error al guardar en historial' });
+          }
+
+          res.status(201).json({
+            message: 'Consulta guardada en historial',
+            id: this.lastID
+          });
+        }
+      );
     }
   );
 };

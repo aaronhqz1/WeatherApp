@@ -1,6 +1,33 @@
 const bcrypt = require('bcrypt');
-const https = require('https');
+const https = require('node:https');
 const db = require('../config/database');
+
+// Función para validar seguridad de contraseña
+function validatePasswordStrength(password) {
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  if (password.length < minLength) {
+    return { valid: false, message: 'La contraseña debe tener al menos 8 caracteres' };
+  }
+  if (!hasUpperCase) {
+    return { valid: false, message: 'La contraseña debe contener al menos una letra mayúscula' };
+  }
+  if (!hasLowerCase) {
+    return { valid: false, message: 'La contraseña debe contener al menos una letra minúscula' };
+  }
+  if (!hasNumbers) {
+    return { valid: false, message: 'La contraseña debe contener al menos un número' };
+  }
+  if (!hasSpecialChar) {
+    return { valid: false, message: 'La contraseña debe contener al menos un carácter especial (!@#$%^&*...)' };
+  }
+
+  return { valid: true };
+}
 
 // Función para geocodificar una ciudad
 function geocodeCity(cityName) {
@@ -41,8 +68,8 @@ function geocodeCity(cityName) {
 const register = async (req, res) => {
   const { username, password, homeCity } = req.body;
 
-  if (!username || !password || !homeCity) {
-    return res.status(400).json({ error: 'Usuario, contraseña y ciudad de origen son requeridos' });
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
   }
 
   if (username.length < 3) {
@@ -54,14 +81,32 @@ const register = async (req, res) => {
   }
 
   try {
-    // Geocodificar la ciudad de origen
-    const location = await geocodeCity(homeCity);
+    let locationData = { city: null, latitude: null, longitude: null };
+    
+    // Solo geocodificar si se proporcionó una ciudad
+    if (homeCity && homeCity.trim()) {
+      try {
+        const location = await geocodeCity(homeCity);
+        locationData = { 
+          city: location.city, 
+          latitude: location.latitude, 
+          longitude: location.longitude 
+        };
+      } catch (error) {
+        if (error.message === 'Ciudad no encontrada') {
+          return res.status(404).json({ 
+            error: 'Ciudad no encontrada. Intente con otro nombre o déjelo en blanco' 
+          });
+        }
+        throw error;
+      }
+    }
     
     const hashedPassword = await bcrypt.hash(password, 10);
 
     db.run(
       'INSERT INTO users (username, password, home_city, home_latitude, home_longitude) VALUES (?, ?, ?, ?, ?)',
-      [username, hashedPassword, location.city, location.latitude, location.longitude],
+      [username, hashedPassword, locationData.city, locationData.latitude, locationData.longitude],
       function (err) {
         if (err) {
           if (err.message.includes('UNIQUE constraint failed')) {
@@ -73,14 +118,11 @@ const register = async (req, res) => {
         res.status(201).json({
           message: 'Usuario registrado exitosamente',
           userId: this.lastID,
-          homeCity: location.city
+          homeCity: locationData.city
         });
       }
     );
   } catch (error) {
-    if (error.message === 'Ciudad no encontrada') {
-      return res.status(404).json({ error: 'Ciudad no encontrada. Intente con otro nombre o agregue el país' });
-    }
     res.status(500).json({ error: 'Error en el servidor' });
   }
 };

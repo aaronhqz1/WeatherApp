@@ -8,6 +8,22 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
   const [homeCity, setHomeCity] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false)
+
+  // Validar fortaleza de contraseña en tiempo real
+  const getPasswordStrength = () => {
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    }
+    return checks
+  }
+
+  const passwordChecks = getPasswordStrength()
+  const isPasswordStrong = Object.values(passwordChecks).every(check => check)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -18,13 +34,8 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
       return
     }
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
-      return
-    }
-
-    if (!homeCity.trim()) {
-      setError('Debe ingresar su ciudad de origen')
+    if (!isPasswordStrong) {
+      setError('La contraseña no cumple con los requisitos de seguridad')
       return
     }
 
@@ -34,11 +45,14 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
       const response = await axios.post('http://localhost:3000/api/auth/register', {
         username,
         password,
-        homeCity
+        homeCity: homeCity.trim() || null
       })
 
-      alert(`Usuario registrado exitosamente.\nCiudad de origen: ${response.data.homeCity}\nAhora puedes iniciar sesión.`)
-      onRegisterSuccess()
+      // Pasar datos al componente de éxito
+      onRegisterSuccess({
+        username: response.data.username,
+        homeCity: response.data.homeCity
+      })
     } catch (err) {
       setError(err.response?.data?.error || 'Error al registrar usuario')
     } finally {
@@ -71,10 +85,33 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setShowPasswordRequirements(true)}
               required
-              minLength={6}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Crea una contraseña segura"
             />
+            
+            {showPasswordRequirements && password.length > 0 && (
+              <div className="password-requirements">
+                <p className="requirements-title">Requisitos de contraseña:</p>
+                <ul>
+                  <li className={passwordChecks.length ? 'valid' : 'invalid'}>
+                    {passwordChecks.length ? '✓' : '○'} Mínimo 8 caracteres
+                  </li>
+                  <li className={passwordChecks.uppercase ? 'valid' : 'invalid'}>
+                    {passwordChecks.uppercase ? '✓' : '○'} Al menos una mayúscula
+                  </li>
+                  <li className={passwordChecks.lowercase ? 'valid' : 'invalid'}>
+                    {passwordChecks.lowercase ? '✓' : '○'} Al menos una minúscula
+                  </li>
+                  <li className={passwordChecks.number ? 'valid' : 'invalid'}>
+                    {passwordChecks.number ? '✓' : '○'} Al menos un número
+                  </li>
+                  <li className={passwordChecks.special ? 'valid' : 'invalid'}>
+                    {passwordChecks.special ? '✓' : '○'} Al menos un carácter especial (!@#$%...)
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -89,22 +126,21 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
           </div>
 
           <div className="form-group">
-            <label>Ciudad de Origen</label>
+            <label>Ciudad de Origen (Opcional)</label>
             <input
               type="text"
               value={homeCity}
               onChange={(e) => setHomeCity(e.target.value)}
-              required
               placeholder="Ej: San José, Costa Rica"
             />
             <small className="form-help">
-              Esta será la ciudad que verás al iniciar sesión
+              Puedes configurarla después desde tu perfil
             </small>
           </div>
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" disabled={loading}>
+          <button type="submit" disabled={loading || !isPasswordStrong}>
             {loading ? 'Registrando...' : 'Registrarse'}
           </button>
         </form>

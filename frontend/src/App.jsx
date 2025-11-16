@@ -2,11 +2,13 @@ import { useState } from 'react'
 import Home from './components/Home'
 import Login from './components/Login'
 import Register from './components/Register'
+import RegistrationSuccess from './components/RegistrationSuccess'
 import Dashboard from './components/Dashboard'
 
 function App() {
   const [currentView, setCurrentView] = useState('home')
   const [user, setUser] = useState(null)
+  const [registrationData, setRegistrationData] = useState(null)
 
   const handleShowLogin = () => {
     setCurrentView('login')
@@ -22,7 +24,12 @@ function App() {
     setCurrentView('home')
   }
 
-  const handleRegisterSuccess = () => {
+  const handleRegisterSuccess = (data) => {
+    setRegistrationData(data)
+    setCurrentView('registration-success')
+  }
+
+  const handleGoToLoginFromSuccess = () => {
     setCurrentView('login')
   }
 
@@ -44,6 +51,14 @@ function App() {
         <Register 
           onRegisterSuccess={handleRegisterSuccess}
           onSwitchToLogin={() => setCurrentView('login')}
+        />
+      )}
+
+      {currentView === 'registration-success' && registrationData && (
+        <RegistrationSuccess
+          username={registrationData.username}
+          homeCity={registrationData.homeCity}
+          onGoToLogin={handleGoToLoginFromSuccess}
         />
       )}
       

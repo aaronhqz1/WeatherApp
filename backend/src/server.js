@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+require('dotenv').config();
 
 const routes = require('./routes');
 
@@ -17,8 +18,12 @@ app.use('/api', routes);
 app.get('/', (req, res) => {
   res.json({ 
     message: 'API de Clima funcionando correctamente',
-    version: '1.0.0',
-    api: 'Open-Meteo (gratuita)'
+    version: '2.0.0',
+    api: 'Open-Meteo (gratuita)',
+    features: {
+      weather: true,
+      openai: process.env.OPENAI_API_KEY ? true : false
+    }
   });
 });
 
@@ -32,4 +37,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
   console.log('Base de datos SQLite inicializada');
+  console.log(`OpenAI: ${process.env.OPENAI_API_KEY ? 'Configurado ✓' : 'No configurado ✗'}`);
 });

@@ -6,6 +6,8 @@ function Home({ onShowLogin }) {
   const [weatherData, setWeatherData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [searchCity, setSearchCity] = useState('')
+  const [searchLoading, setSearchLoading] = useState(false)
 
   useEffect(() => {
     fetchRandomWeather()
@@ -25,6 +27,26 @@ function Home({ onShowLogin }) {
     }
   }
 
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    if (!searchCity.trim()) return
+
+    setSearchLoading(true)
+    setError('')
+
+    try {
+      const response = await axios.get(
+        `http://localhost:3000/api/weather/search?city=${searchCity}`
+      )
+      setWeatherData(response.data)
+      setSearchCity('')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error al buscar el clima')
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
   return (
     <div className="home-container">
       <header className="home-header">
@@ -38,7 +60,21 @@ function Home({ onShowLogin }) {
         <div className="welcome-section">
           <h2>Bienvenido</h2>
           <p>Consulta el clima de cualquier ciudad del mundo</p>
-          <p className="random-info">Mostrando clima de una ciudad aleatoria</p>
+          
+          <form onSubmit={handleSearch} className="home-search-form">
+            <input
+              type="text"
+              value={searchCity}
+              onChange={(e) => setSearchCity(e.target.value)}
+              placeholder="Buscar ciudad (ej: Paris, Tokyo, New York)..."
+              className="search-input"
+            />
+            <button type="submit" disabled={searchLoading}>
+              {searchLoading ? 'Buscando...' : 'Buscar'}
+            </button>
+          </form>
+          
+          <p className="random-info">O mira el clima de una ciudad aleatoria</p>
         </div>
 
         {loading && (
@@ -60,7 +96,7 @@ function Home({ onShowLogin }) {
 
         <div className="home-footer">
           <button onClick={fetchRandomWeather} className="refresh-button">
-            Ver Otra Ciudad
+            Ver Otra Ciudad Aleatoria
           </button>
           <p className="login-prompt">
             Inicia sesión para guardar tus búsquedas y ver el clima de tu ciudad
