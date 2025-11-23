@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Home from './components/Home'
 import Login from './components/Login'
 import Register from './components/Register'
@@ -10,17 +10,36 @@ function App() {
   const [user, setUser] = useState(null)
   const [registrationData, setRegistrationData] = useState(null)
 
+  // Cargar sesión del usuario al iniciar
+  useEffect(() => {
+    const savedUser = localStorage.getItem('weatherAppUser')
+    if (savedUser) {
+      try {
+        const userData = JSON.parse(savedUser)
+        setUser(userData)
+        setCurrentView('dashboard')
+      } catch (error) {
+        console.error('Error al cargar sesión:', error)
+        localStorage.removeItem('weatherAppUser')
+      }
+    }
+  }, [])
+
   const handleShowLogin = () => {
     setCurrentView('login')
   }
 
   const handleLogin = (userData) => {
     setUser(userData)
+    // Guardar sesión en localStorage
+    localStorage.setItem('weatherAppUser', JSON.stringify(userData))
     setCurrentView('dashboard')
   }
 
   const handleLogout = () => {
     setUser(null)
+    // Limpiar sesión
+    localStorage.removeItem('weatherAppUser')
     setCurrentView('home')
   }
 

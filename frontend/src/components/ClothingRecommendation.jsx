@@ -9,7 +9,10 @@ function ClothingRecommendation({ weatherData }) {
   const [error, setError] = useState('')
 
   const handleGetRecommendation = async () => {
-    if (!weatherData) return
+    if (!weatherData) {
+      setError('Por favor, busca el clima de una ciudad primero')
+      return
+    }
 
     setLoading(true)
     setError('')
@@ -33,11 +36,9 @@ function ClothingRecommendation({ weatherData }) {
     }
   }
 
-  if (!weatherData) return null
-
   return (
     <>
-      {/* Botón flotante */}
+      {/* Botón flotante - SIEMPRE visible */}
       <button 
         className="clothing-fab"
         onClick={() => setIsOpen(!isOpen)}
@@ -59,47 +60,64 @@ function ClothingRecommendation({ weatherData }) {
             </div>
 
             <div className="clothing-content">
-              <div className="weather-summary">
-                <h4>📍 {weatherData.city}</h4>
-                <p>🌡️ {weatherData.temperature}°C</p>
-              </div>
+              {weatherData ? (
+                <>
+                  <div className="weather-summary">
+                    <h4>📍 {weatherData.city}</h4>
+                    <p>🌡️ {weatherData.temperature}°C</p>
+                    <p>💧 Humedad: {weatherData.humidity}%</p>
+                    <p>💨 Viento: {weatherData.wind_speed} km/h</p>
+                  </div>
 
-              <div className="style-selector">
-                <label>Estilo de vestimenta:</label>
-                <div className="style-buttons">
+                  <div className="style-selector">
+                    <label>Estilo de vestimenta:</label>
+                    <div className="style-buttons">
+                      <button
+                        className={`style-btn ${clothingStyle === 'formal' ? 'active' : ''}`}
+                        onClick={() => setClothingStyle('formal')}
+                      >
+                        👔 Formal
+                      </button>
+                      <button
+                        className={`style-btn ${clothingStyle === 'casual' ? 'active' : ''}`}
+                        onClick={() => setClothingStyle('casual')}
+                      >
+                        👕 Casual
+                      </button>
+                      <button
+                        className={`style-btn ${clothingStyle === 'athletic' ? 'active' : ''}`}
+                        onClick={() => setClothingStyle('athletic')}
+                      >
+                        🏃 Deportivo
+                      </button>
+                    </div>
+                  </div>
+
                   <button
-                    className={`style-btn ${clothingStyle === 'formal' ? 'active' : ''}`}
-                    onClick={() => setClothingStyle('formal')}
+                    className="get-recommendation-btn"
+                    onClick={handleGetRecommendation}
+                    disabled={loading}
                   >
-                    👔 Formal
+                    {loading ? '⏳ Generando...' : '✨ Obtener Recomendación'}
                   </button>
-                  <button
-                    className={`style-btn ${clothingStyle === 'casual' ? 'active' : ''}`}
-                    onClick={() => setClothingStyle('casual')}
-                  >
-                    👕 Casual
-                  </button>
-                  <button
-                    className={`style-btn ${clothingStyle === 'athletic' ? 'active' : ''}`}
-                    onClick={() => setClothingStyle('athletic')}
-                  >
-                    🏃 Deportivo
-                  </button>
+                </>
+              ) : (
+                <div className="no-weather-message">
+                  <p>📍 No hay datos de clima disponibles</p>
+                  <p>Por favor:</p>
+                  <ol>
+                    <li>Busca el clima de una ciudad</li>
+                    <li>Luego vuelve aquí para obtener recomendaciones</li>
+                  </ol>
                 </div>
-              </div>
-
-              <button
-                className="get-recommendation-btn"
-                onClick={handleGetRecommendation}
-                disabled={loading}
-              >
-                {loading ? '⏳ Generando...' : '✨ Obtener Recomendación'}
-              </button>
+              )}
 
               {error && (
                 <div className="recommendation-error">
                   <p>⚠️ {error}</p>
-                  <small>Asegúrate de configurar OPENAI_API_KEY en el backend</small>
+                  {error.includes('OpenAI') && (
+                    <small>Asegúrate de configurar OPENAI_API_KEY en el backend</small>
+                  )}
                 </div>
               )}
 
