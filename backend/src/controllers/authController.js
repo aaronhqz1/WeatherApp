@@ -66,7 +66,7 @@ function geocodeCity(cityName) {
 }
 
 const register = async (req, res) => {
-  const { username, password, homeCity } = req.body;
+  const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
@@ -76,37 +76,19 @@ const register = async (req, res) => {
     return res.status(400).json({ error: 'El usuario debe tener al menos 3 caracteres' });
   }
 
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+  // Validar fortaleza de la contraseña
+  const passwordValidation = validatePasswordStrength(password);
+  if (!passwordValidation.valid) {
+    return res.status(400).json({ error: passwordValidation.message });
   }
 
   try {
-    let locationData = { city: null, latitude: null, longitude: null };
-    
-    // Solo geocodificar si se proporcionó una ciudad
-    if (homeCity && homeCity.trim()) {
-      try {
-        const location = await geocodeCity(homeCity);
-        locationData = { 
-          city: location.city, 
-          latitude: location.latitude, 
-          longitude: location.longitude 
-        };
-      } catch (error) {
-        if (error.message === 'Ciudad no encontrada') {
-          return res.status(404).json({ 
-            error: 'Ciudad no encontrada. Intente con otro nombre o déjelo en blanco' 
-          });
-        }
-        throw error;
-      }
-    }
-    
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Usar factor de costo 12 para mayor seguridad (10 es el default)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     db.run(
-      'INSERT INTO users (username, password, home_city, home_latitude, home_longitude) VALUES (?, ?, ?, ?, ?)',
-      [username, hashedPassword, locationData.city, locationData.latitude, locationData.longitude],
+      'INSERT INTO users (username, password) VALUES (?, ?)',
+      [username, hashedPassword],
       function (err) {
         if (err) {
           if (err.message.includes('UNIQUE constraint failed')) {
@@ -118,7 +100,7 @@ const register = async (req, res) => {
         res.status(201).json({
           message: 'Usuario registrado exitosamente',
           userId: this.lastID,
-          homeCity: locationData.city
+          username: username
         });
       }
     );

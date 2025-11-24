@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import axios from 'axios'
+import { toast } from 'react-toastify'
 
 function Login({ onLogin, onSwitchToRegister, onBack }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
 
     try {
@@ -18,15 +17,14 @@ function Login({ onLogin, onSwitchToRegister, onBack }) {
         password
       })
 
+      toast.success(`Bienvenido, ${response.data.username}!`)
+
       onLogin({
         userId: response.data.userId,
-        username: response.data.username,
-        homeCity: response.data.homeCity,
-        homeLatitude: response.data.homeLatitude,
-        homeLongitude: response.data.homeLongitude
+        username: response.data.username
       })
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al iniciar sesión')
+      toast.error(err.response?.data?.error || 'Error al iniciar sesión')
     } finally {
       setLoading(false)
     }
@@ -66,8 +64,6 @@ function Login({ onLogin, onSwitchToRegister, onBack }) {
               placeholder="Ingrese su contraseña"
             />
           </div>
-
-          {error && <div className="error-message">{error}</div>}
 
           <button type="submit" disabled={loading}>
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}

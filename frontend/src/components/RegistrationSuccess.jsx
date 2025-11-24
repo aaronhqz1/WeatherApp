@@ -1,4 +1,4 @@
-function RegistrationSuccess({ username, homeCity, onGoToLogin }) {
+function RegistrationSuccess({ username, onGoToLogin }) {
   return (
     <div className="auth-container">
       <div className="success-card">
@@ -12,12 +12,6 @@ function RegistrationSuccess({ username, homeCity, onGoToLogin }) {
               <span className="info-label">Usuario:</span>
               <span className="info-value">{username}</span>
             </div>
-            {homeCity && (
-              <div className="info-item">
-                <span className="info-label">Ciudad de Origen:</span>
-                <span className="info-value">{homeCity}</span>
-              </div>
-            )}
           </div>
           
           <div className="next-steps">
@@ -25,7 +19,8 @@ function RegistrationSuccess({ username, homeCity, onGoToLogin }) {
             <ul>
               <li>✓ Tu cuenta ha sido creada con éxito</li>
               <li>✓ Tu contraseña está encriptada de forma segura</li>
-              <li>→ Ahora puedes iniciar sesión y comenzar a usar la aplicación</li>
+              <li>→ Al iniciar sesión, selecciona tu destino de viaje</li>
+              <li>→ Podrás cambiar tu destino en cualquier momento</li>
             </ul>
           </div>
         </div>

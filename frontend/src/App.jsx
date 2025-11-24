@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import Home from './components/Home'
 import Login from './components/Login'
 import Register from './components/Register'
 import RegistrationSuccess from './components/RegistrationSuccess'
 import Dashboard from './components/Dashboard'
+import TravelDestination from './components/TravelDestination'
 
 function App() {
   const [currentView, setCurrentView] = useState('home')
@@ -17,7 +20,13 @@ function App() {
       try {
         const userData = JSON.parse(savedUser)
         setUser(userData)
-        setCurrentView('dashboard')
+        
+        // Si no tiene destino de viaje, ir a selección de destino
+        if (!userData.travelDestination) {
+          setCurrentView('travel-destination')
+        } else {
+          setCurrentView('dashboard')
+        }
       } catch (error) {
         console.error('Error al cargar sesión:', error)
         localStorage.removeItem('weatherAppUser')
@@ -31,14 +40,28 @@ function App() {
 
   const handleLogin = (userData) => {
     setUser(userData)
-    // Guardar sesión en localStorage
     localStorage.setItem('weatherAppUser', JSON.stringify(userData))
+    
+    // Siempre ir a selección de destino primero
+    setCurrentView('travel-destination')
+  }
+
+  const handleTravelDestinationSet = (destinationData) => {
+    // Actualizar usuario con destino
+    const updatedUser = {
+      ...user,
+      travelDestination: destinationData.city,
+      destinationLatitude: destinationData.latitude,
+      destinationLongitude: destinationData.longitude
+    }
+    
+    setUser(updatedUser)
+    localStorage.setItem('weatherAppUser', JSON.stringify(updatedUser))
     setCurrentView('dashboard')
   }
 
   const handleLogout = () => {
     setUser(null)
-    // Limpiar sesión
     localStorage.removeItem('weatherAppUser')
     setCurrentView('home')
   }
@@ -54,6 +77,19 @@ function App() {
 
   return (
     <div className="app">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
+      
       {currentView === 'home' && (
         <Home onShowLogin={handleShowLogin} />
       )}
@@ -76,8 +112,15 @@ function App() {
       {currentView === 'registration-success' && registrationData && (
         <RegistrationSuccess
           username={registrationData.username}
-          homeCity={registrationData.homeCity}
           onGoToLogin={handleGoToLoginFromSuccess}
+        />
+      )}
+
+      {currentView === 'travel-destination' && user && (
+        <TravelDestination
+          user={user}
+          onDestinationSet={handleTravelDestinationSet}
+          onLogout={handleLogout}
         />
       )}
       
@@ -85,6 +128,7 @@ function App() {
         <Dashboard 
           user={user}
           onLogout={handleLogout}
+          onChangeDestination={() => setCurrentView('travel-destination')}
         />
       )}
     </div>

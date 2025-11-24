@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { toast } from 'react-toastify'
 import WeatherCard from './WeatherCard'
-import ClothingRecommendation from './ClothingRecommendation'
 
-function Dashboard({ user, onLogout }) {
-  const [homeWeather, setHomeWeather] = useState(null)
-  const [recentSearches, setRecentSearches] = useState([])
+function Dashboard({ user, onLogout, onChangeDestination }) {
+  const [destinationWeather, setDestinationWeather] = useState(null)
   const [searchCity, setSearchCity] = useState('')
   const [searchResult, setSearchResult] = useState(null)
+  const [recentSearches, setRecentSearches] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchLoading, setSearchLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [saveMessage, setSaveMessage] = useState('')
-  const [showSettings, setShowSettings] = useState(false)
-  const [newHomeCity, setNewHomeCity] = useState('')
-  const [settingsLoading, setSettingsLoading] = useState(false)
+  const [clothingStyle, setClothingStyle] = useState('casual')
+  const [recommendation, setRecommendation] = useState(null)
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false)
 
   useEffect(() => {
     loadDashboardData()
@@ -22,16 +20,16 @@ function Dashboard({ user, onLogout }) {
 
   const loadDashboardData = async () => {
     try {
-      // Solo cargar clima de origen si tiene ciudad configurada
-      if (user.homeLatitude && user.homeLongitude) {
+      // Cargar clima del destino de viaje
+      if (user.destinationLatitude && user.destinationLongitude) {
         const weatherResponse = await axios.get(
-          `http://localhost:3000/api/weather/coordinates?lat=${user.homeLatitude}&lon=${user.homeLongitude}`
+          `http://localhost:3000/api/weather/coordinates?lat=${user.destinationLatitude}&lon=${user.destinationLongitude}`
         )
-        setHomeWeather({
+        setDestinationWeather({
           ...weatherResponse.data,
-          city: user.homeCity,
-          latitude: user.homeLatitude,
-          longitude: user.homeLongitude
+          city: user.travelDestination,
+          latitude: user.destinationLatitude,
+          longitude: user.destinationLongitude
         })
       }
 
@@ -41,7 +39,7 @@ function Dashboard({ user, onLogout }) {
       )
       setRecentSearches(historyResponse.data)
     } catch (err) {
-      setError('Error al cargar los datos')
+      toast.error('Error al cargar los datos')
     } finally {
       setLoading(false)
     }
@@ -49,11 +47,12 @@ function Dashboard({ user, onLogout }) {
 
   const handleSearch = async (e) => {
     e.preventDefault()
-    if (!searchCity.trim()) return
+    if (!searchCity.trim()) {
+      toast.warning('Por favor ingresa una ciudad')
+      return
+    }
 
     setSearchLoading(true)
-    setError('')
-    setSaveMessage('')
     setSearchResult(null)
 
     try {
@@ -61,15 +60,19 @@ function Dashboard({ user, onLogout }) {
         `http://localhost:3000/api/weather/search?city=${searchCity}`
       )
       setSearchResult(response.data)
+      toast.success(`Clima de ${response.data.city} cargado`)
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al buscar el clima')
+      toast.error(err.response?.data?.error || 'Error al buscar el clima')
     } finally {
       setSearchLoading(false)
     }
   }
 
   const handleSaveToHistory = async () => {
-    if (!searchResult) return
+    if (!searchResult) {
+      toast.warning('Primero busca una ciudad')
+      return
+    }
 
     try {
       await axios.post('http://localhost:3000/api/history', {
@@ -83,52 +86,43 @@ function Dashboard({ user, onLogout }) {
         weather_code: searchResult.weather_code
       })
 
-      setSaveMessage('Consulta guardada en el historial')
+      toast.success('Consulta guardada en el historial')
       
       // Recargar historial
       const historyResponse = await axios.get(
         `http://localhost:3000/api/history/${user.userId}/recent`
       )
       setRecentSearches(historyResponse.data)
-
-      setTimeout(() => setSaveMessage(''), 3000)
     } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Error al guardar en el historial'
-      setError(errorMsg)
-      setTimeout(() => setError(''), 5000)
+      toast.error(err.response?.data?.error || 'Error al guardar en el historial')
     }
   }
 
-  const handleUpdateHomeCity = async (e) => {
-    e.preventDefault()
-    if (!newHomeCity.trim()) return
+  const handleGetRecommendation = async () => {
+    if (!destinationWeather) {
+      toast.warning('No hay datos de clima disponibles')
+      return
+    }
 
-    setSettingsLoading(true)
-    setError('')
+    setLoadingRecommendation(true)
+    setRecommendation(null)
 
     try {
-      const response = await axios.put(
-        `http://localhost:3000/api/user/${user.userId}/home`,
-        { homeCity: newHomeCity }
-      )
+      const response = await axios.post('http://localhost:3000/api/ai/clothing-recommendation', {
+        city: destinationWeather.city,
+        temperature: destinationWeather.temperature,
+        weatherCode: destinationWeather.weather_code,
+        humidity: destinationWeather.humidity,
+        windSpeed: destinationWeather.wind_speed,
+        clothingStyle: clothingStyle
+      })
 
-      // Actualizar datos del usuario
-      user.homeCity = response.data.homeCity
-      user.homeLatitude = response.data.homeLatitude
-      user.homeLongitude = response.data.homeLongitude
-
-      setSaveMessage('Ciudad de origen actualizada')
-      setShowSettings(false)
-      setNewHomeCity('')
-      
-      // Recargar datos
-      await loadDashboardData()
-
-      setTimeout(() => setSaveMessage(''), 3000)
+      setRecommendation(response.data)
+      toast.success('Recomendación generada')
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al actualizar ciudad')
+      toast.error(err.response?.data?.error || 'Error al obtener recomendación. Verifica que OpenAI esté configurado')
     } finally {
-      setSettingsLoading(false)
+      setLoadingRecommendation(false)
     }
   }
 
@@ -148,56 +142,97 @@ function Dashboard({ user, onLogout }) {
           <span className="username-display">Usuario: {user.username}</span>
         </div>
         <div className="header-actions">
-          <button onClick={() => setShowSettings(!showSettings)} className="settings-button">
-            ⚙️ Configuración
-          </button>
           <button onClick={onLogout} className="logout-button">
             Cerrar Sesión
           </button>
         </div>
       </header>
 
-      {showSettings && (
-        <section className="settings-section">
-          <h2>Configurar Ciudad de Origen</h2>
-          <form onSubmit={handleUpdateHomeCity} className="settings-form">
-            <input
-              type="text"
-              value={newHomeCity}
-              onChange={(e) => setNewHomeCity(e.target.value)}
-              placeholder={user.homeCity || "Ingresa tu ciudad (ej: San José, Costa Rica)"}
-              className="search-input"
-            />
-            <div className="settings-buttons">
-              <button type="submit" disabled={settingsLoading}>
-                {settingsLoading ? 'Guardando...' : 'Actualizar Ciudad'}
-              </button>
-              <button type="button" onClick={() => setShowSettings(false)} className="cancel-button">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-
       <div className="dashboard-content">
-        {/* Clima de ciudad de origen */}
-        {user.homeCity ? (
-          <section className="home-weather-section">
-            <h2>Tu Ciudad: {user.homeCity}</h2>
-            {homeWeather && (
-              <WeatherCard weatherData={homeWeather} showSaveButton={false} />
-            )}
-          </section>
-        ) : (
-          <section className="home-weather-section">
-            <h2>Ciudad de Origen No Configurada</h2>
-            <p className="no-data">
-              Configura tu ciudad de origen para ver el clima al iniciar sesión.
-              Haz clic en "Configuración" arriba.
-            </p>
-          </section>
-        )}
+        {/* Destino de Viaje */}
+        <section className="destination-section">
+          <div className="destination-header">
+            <h2>✈️ Tu Destino: {user.travelDestination}</h2>
+            <button onClick={onChangeDestination} className="change-destination-btn">
+              Cambiar Destino
+            </button>
+          </div>
+          
+          {destinationWeather && (
+            <>
+              <WeatherCard weatherData={destinationWeather} showSaveButton={false} />
+              
+              {/* Radio buttons y botón de recomendación */}
+              <div className="recommendation-controls">
+                <div className="style-selector-inline">
+                  <label>¿Qué vestimenta buscas?</label>
+                  <div className="radio-group">
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="clothingStyle"
+                        value="casual"
+                        checked={clothingStyle === 'casual'}
+                        onChange={(e) => setClothingStyle(e.target.value)}
+                      />
+                      <span>👕 Casual</span>
+                    </label>
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="clothingStyle"
+                        value="formal"
+                        checked={clothingStyle === 'formal'}
+                        onChange={(e) => setClothingStyle(e.target.value)}
+                      />
+                      <span>👔 Formal</span>
+                    </label>
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="clothingStyle"
+                        value="athletic"
+                        checked={clothingStyle === 'athletic'}
+                        onChange={(e) => setClothingStyle(e.target.value)}
+                      />
+                      <span>🏃 Deportivo</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={handleGetRecommendation}
+                  disabled={loadingRecommendation}
+                  className="recommendation-button"
+                >
+                  {loadingRecommendation ? '⏳ Generando...' : '✨ Obtener Recomendación de Vestimenta'}
+                </button>
+              </div>
+
+              {/* Mostrar recomendación */}
+              {recommendation && (
+                <div className="recommendation-result-inline">
+                  <div className="result-header">
+                    <span className="style-badge">{recommendation.clothingStyle.toUpperCase()}</span>
+                    <span className="ai-badge">Powered by OpenAI</span>
+                  </div>
+                  
+                  <div className="recommendation-text">
+                    {recommendation.recommendation.split('\n').map((line, index) => (
+                      line.trim() && <p key={index}>{line}</p>
+                    ))}
+                  </div>
+
+                  <div className="recommendation-footer">
+                    <small>
+                      Generado: {new Date(recommendation.timestamp).toLocaleTimeString('es-ES')}
+                    </small>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </section>
 
         {/* Búsqueda de clima */}
         <section className="search-section">
@@ -215,15 +250,14 @@ function Dashboard({ user, onLogout }) {
             </button>
           </form>
 
-          {error && <div className="error-message">{error}</div>}
-          {saveMessage && <div className="success-message">{saveMessage}</div>}
-
           {searchResult && (
-            <WeatherCard 
-              weatherData={searchResult} 
-              showSaveButton={true}
-              onSave={handleSaveToHistory}
-            />
+            <>
+              <WeatherCard 
+                weatherData={searchResult} 
+                showSaveButton={true}
+                onSave={handleSaveToHistory}
+              />
+            </>
           )}
         </section>
 

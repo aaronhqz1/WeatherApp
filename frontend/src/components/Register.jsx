@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import axios from 'axios'
+import { toast } from 'react-toastify'
 
 function Register({ onRegisterSuccess, onSwitchToLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [homeCity, setHomeCity] = useState('')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false)
 
@@ -27,15 +26,14 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
 
     if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden')
+      toast.error('Las contraseñas no coinciden')
       return
     }
 
     if (!isPasswordStrong) {
-      setError('La contraseña no cumple con los requisitos de seguridad')
+      toast.error('La contraseña no cumple con los requisitos de seguridad')
       return
     }
 
@@ -44,17 +42,17 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
     try {
       const response = await axios.post('http://localhost:3000/api/auth/register', {
         username,
-        password,
-        homeCity: homeCity.trim() || null
+        password
       })
 
+      toast.success('Usuario registrado exitosamente')
+      
       // Pasar datos al componente de éxito
       onRegisterSuccess({
-        username: response.data.username,
-        homeCity: response.data.homeCity
+        username: response.data.username
       })
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al registrar usuario')
+      toast.error(err.response?.data?.error || 'Error al registrar usuario')
     } finally {
       setLoading(false)
     }
@@ -124,21 +122,6 @@ function Register({ onRegisterSuccess, onSwitchToLogin }) {
               placeholder="Confirme su contraseña"
             />
           </div>
-
-          <div className="form-group">
-            <label>Ciudad de Origen (Opcional)</label>
-            <input
-              type="text"
-              value={homeCity}
-              onChange={(e) => setHomeCity(e.target.value)}
-              placeholder="Ej: San José, Costa Rica"
-            />
-            <small className="form-help">
-              Puedes configurarla después desde tu perfil
-            </small>
-          </div>
-
-          {error && <div className="error-message">{error}</div>}
 
           <button type="submit" disabled={loading || !isPasswordStrong}>
             {loading ? 'Registrando...' : 'Registrarse'}
