@@ -61,6 +61,31 @@ Instalar las dependencias necesarias:
 npm install
 ```
 
+### OpenAI API Key
+
+Crear archivo .env
+
+En el directorio:
+
+WeatherApp/backend
+
+
+crea un archivo llamado:
+
+.env
+
+2. Agregar las variables de entorno
+
+Dentro del archivo .env, agrega lo siguiente:
+
+PORT=3000
+OPENAI_API_KEY=TU_API_KEY_AQUI
+
+
+Nota: Reemplaza TU_API_KEY_AQUI con tu clave real de la API de OpenAI.
+
+
+
 Esto instalará automáticamente todas las dependencias listadas en `package.json`:
 - express
 - sqlite3
